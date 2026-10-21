@@ -1,0 +1,9 @@
+**
+!Dockerfile
+!pom.xml
+!src/
+!src/main/
+!src/main/**
+**/*.pem
+**/*.key
+**/.env*
