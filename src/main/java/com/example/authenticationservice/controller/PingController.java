@@ -5,9 +5,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class PingController {
-
     @GetMapping("/api/ping")
-    public String ping() {
-        return "Authentication Service is running";
-    }
+    public String ping() { return "Authentication Service is running"; }
 }
