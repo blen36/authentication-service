@@ -1,65 +1,46 @@
 package com.example.authenticationservice.controller;
 
-import com.example.authenticationservice.dto.CredentialRequestDto;
-import com.example.authenticationservice.dto.CredentialResponseDto;
-import com.example.authenticationservice.dto.LoginRequestDto;
-
-import com.example.authenticationservice.service.AuthService;
-import com.example.authenticationservice.service.CredentialService;
-
+import com.example.authenticationservice.dto.*;
+import com.example.authenticationservice.service.*;
 import jakarta.validation.Valid;
-
-import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
-
     private final CredentialService credentialService;
     private final AuthService authService;
 
-    public AuthController(
-            CredentialService credentialService,
-            AuthService authService
-    ) {
+    public AuthController(CredentialService credentialService, AuthService authService) {
         this.credentialService = credentialService;
         this.authService = authService;
     }
 
     @PostMapping("/credentials")
-    public ResponseEntity<CredentialResponseDto> createCredentials(
-            @Valid @RequestBody CredentialRequestDto request,
-
-            @RequestHeader(
-                    name = "X-Registration-Key",
-                    required = false
-            )
-            String registrationKey
-    ) {
-        CredentialResponseDto response =
-                credentialService.create(request, registrationKey);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .cacheControl(CacheControl.noStore())
-                .body(response);
+    public ResponseEntity<CredentialResponseDto> createCredentials(@Valid @RequestBody CredentialRequestDto request) {
+        return ResponseEntity.status(HttpStatus.CREATED).cacheControl(CacheControl.noStore())
+                .body(credentialService.create(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<CredentialResponseDto> login(
-            @Valid @RequestBody LoginRequestDto request
-    ) {
-        return ResponseEntity
-                .ok()
-                .cacheControl(CacheControl.noStore())
-                .body(authService.login(request));
+    public ResponseEntity<TokenResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.PRAGMA, "no-cache").body(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponseDto> refresh(@Valid @RequestBody RefreshRequestDto request) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .header(HttpHeaders.PRAGMA, "no-cache").body(authService.refresh(request.refreshToken()));
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<TokenValidationResponseDto> validate(@AuthenticationPrincipal Jwt jwt) {
+        Number userId = jwt.getClaim("userId");
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new TokenValidationResponseDto(
+                true, userId.longValue(), jwt.getClaimAsString("role"), jwt.getExpiresAt()));
     }
 }
