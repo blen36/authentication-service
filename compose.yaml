@@ -11,19 +11,24 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "127.0.0.1:8081:8081"
+      - "127.0.0.1:${APP_PORT:-8082}:8082"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      APP_PORT: "8081"
+      APP_PORT: "8082"
+      USER_SERVICE_URL: "${USER_SERVICE_URL:-http://user-service:8081}"
       AUTH_DB_URL: jdbc:postgresql://auth-postgres:5432/authentication_service_db
       AUTH_DB_USERNAME: "${AUTH_DB_USERNAME:?Set AUTH_DB_USERNAME in .env}"
       AUTH_DB_PASSWORD: "${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}"
       AUTH_REGISTRATION_KEY: "${AUTH_REGISTRATION_KEY:?Set AUTH_REGISTRATION_KEY in .env}"
-      AUTH_BOOTSTRAP_ENABLED: "false"
+      AUTH_BOOTSTRAP_ENABLED: "${AUTH_BOOTSTRAP_ENABLED:-false}"
+      AUTH_BOOTSTRAP_USER_ID: "${AUTH_BOOTSTRAP_USER_ID:-}"
+      AUTH_BOOTSTRAP_LOGIN: "${AUTH_BOOTSTRAP_LOGIN:-}"
+      AUTH_BOOTSTRAP_PASSWORD: "${AUTH_BOOTSTRAP_PASSWORD:-}"
       JWT_PRIVATE_KEY: file:/run/secrets/auth-private-key.pem
       JWT_PUBLIC_KEY: file:/run/secrets/auth-public-key.pem
       JWT_ACCESS_TTL_SECONDS: "${JWT_ACCESS_TTL_SECONDS:-900}"
       JWT_REFRESH_TTL_SECONDS: "${JWT_REFRESH_TTL_SECONDS:-604800}"
+    networks: [default, services]
     depends_on:
       auth-postgres:
         condition: service_healthy
@@ -33,7 +38,7 @@ services:
       - source: auth_public_key
         target: auth-public-key.pem
     healthcheck:
-      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--max-time", "3", "--output", "/dev/null", "http://localhost:8081/api/ping"]
+      test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--max-time", "3", "--output", "/dev/null", "http://localhost:8082/.well-known/jwks.json"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -44,3 +49,8 @@ secrets:
     file: ./secrets/private-key.pem
   auth_public_key:
     file: ./secrets/public-key.pem
+
+networks:
+  services:
+    name: java-advanced-services
+    external: true

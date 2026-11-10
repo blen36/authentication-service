@@ -12,11 +12,11 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system app \
-    && useradd --system --gid app --no-create-home app
+    && groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --no-create-home app
 
 COPY --from=build --chown=app:app /build/target/authentication-service-0.0.1-SNAPSHOT.jar /app/app.jar
 
 USER app
-EXPOSE 8081
+EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
